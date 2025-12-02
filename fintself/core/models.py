@@ -1,7 +1,7 @@
 import re
 from datetime import datetime
 from decimal import Decimal
-from typing import Literal, Optional
+from typing import Literal, Optional, List
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -19,7 +19,8 @@ class MovementModel(BaseModel):
         ...,
         description="Amount of the movement (positive for income, negative for expenses).",
     )
-    currency: str = Field(..., description="Currency of the movement (e.g., CLP, USD).")
+    currency: str = Field(...,
+                          description="Currency of the movement (e.g., CLP, USD).")
     transaction_type: Optional[str] = Field(
         None, description="Type of transaction (e.g., 'Debit', 'Credit', 'Transfer')."
     )
@@ -62,5 +63,70 @@ class MovementModel(BaseModel):
                     "original_desc": "COMPRA SUPERMERCADO LIDER",
                     "full_account_id": "1234-5678",
                 },
+            }
+        }
+
+
+class StockModel(BaseModel):
+    """
+    Pydantic model to represent a single stock position.
+    """
+    symbol: str = Field(...,
+                        description="Ticker symbol of the asset (e.g., AAPL, VO, TSLA).")
+    quantity: Decimal = Field(...,
+                              description="Number of shares held (can be fractional).")
+    average_cost: Decimal = Field(...,
+                                  description="Average acquisition cost per share.")
+    currency: str = Field(...,
+                          description="Currency of the asset (e.g., USD).")
+
+    raw_data: Optional[dict] = Field(
+        {}, description="Additional raw data from the scraper."
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "symbol": "AAPL",
+                "quantity": "5.4321",
+                "average_cost": "150.50",
+                "currency": "USD",
+
+                "raw_data": {
+                    "original_name": "APPLE INC",
+                    "sector": "Technology"
+                }
+            }
+        }
+
+
+class PortfolioModel(BaseModel):
+    """
+    Pydantic model to represent the entire investment portfolio snapshot.
+    """
+    wallet_balance_usd: Decimal = Field(...,
+                                        description="Available buying power (cash) in USD.")
+
+    stocks: List[StockModel] = Field(
+        default=[], description="List of stocks/assets currently held.")
+
+    timestamp: datetime = Field(
+        default_factory=datetime.now,
+        description="Time when this snapshot was taken."
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "wallet_balance_usd": "105.20",
+                "timestamp": "2023-10-26T10:00:00",
+                "stocks": [
+                    {
+                        "symbol": "AAPL",
+                        "quantity": "10",
+                        "average_cost": "150.00",
+                        "currency": "USD"
+                    }
+                ]
             }
         }

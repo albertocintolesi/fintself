@@ -124,7 +124,8 @@ class BaseScraper(ABC):
             logger.error(f"Timeout navigating to {url}: {e}")
             raise DataExtractionError(f"Timeout navigating to {url}")
         except Exception as e:
-            logger.error(f"Error navigating to {url}: {e}", exc_info=self.debug_mode)
+            logger.error(
+                f"Error navigating to {url}: {e}", exc_info=self.debug_mode)
             raise DataExtractionError(f"Error navigating to {url}: {e}")
 
     def _click(
@@ -149,9 +150,11 @@ class BaseScraper(ABC):
         timeout = (
             timeout_override if timeout_override is not None else self.default_timeout
         )
-        logger.debug(f"Clicking selector '{str(selector)}' with timeout {timeout}ms.")
+        logger.debug(
+            f"Clicking selector '{str(selector)}' with timeout {timeout}ms.")
         try:
-            element = page.locator(selector) if isinstance(selector, str) else selector
+            element = page.locator(selector) if isinstance(
+                selector, str) else selector
             target = element.first
             target.wait_for(state="visible", timeout=timeout)
             try:
@@ -193,13 +196,15 @@ class BaseScraper(ABC):
             self._human_delay()
         except PlaywrightTimeoutError as e:
             logger.error(f"Timeout clicking selector '{str(selector)}': {e}")
-            raise DataExtractionError(f"Timeout clicking selector '{str(selector)}'")
+            raise DataExtractionError(
+                f"Timeout clicking selector '{str(selector)}'")
         except Exception as e:
             logger.error(
                 f"Error clicking selector '{str(selector)}': {e}",
                 exc_info=self.debug_mode,
             )
-            raise DataExtractionError(f"Error clicking selector '{str(selector)}': {e}")
+            raise DataExtractionError(
+                f"Error clicking selector '{str(selector)}': {e}")
 
     def _fill(
         self,
@@ -217,7 +222,8 @@ class BaseScraper(ABC):
             f"Filling selector '{str(selector)}' by typing with delay {delay}ms."
         )
         try:
-            element = page.locator(selector) if isinstance(selector, str) else selector
+            element = page.locator(selector) if isinstance(
+                selector, str) else selector
             element.first.wait_for(state="visible", timeout=timeout)
             # Clear the input first, then type to simulate human behavior.
             element.first.fill("", timeout=timeout)
@@ -225,13 +231,15 @@ class BaseScraper(ABC):
             self._human_delay()
         except PlaywrightTimeoutError as e:
             logger.error(f"Timeout filling selector '{str(selector)}': {e}")
-            raise DataExtractionError(f"Timeout filling selector '{str(selector)}'")
+            raise DataExtractionError(
+                f"Timeout filling selector '{str(selector)}'")
         except Exception as e:
             logger.error(
                 f"Error filling selector '{str(selector)}': {e}",
                 exc_info=self.debug_mode,
             )
-            raise DataExtractionError(f"Error filling selector '{str(selector)}': {e}")
+            raise DataExtractionError(
+                f"Error filling selector '{str(selector)}': {e}")
 
     def _type(
         self,
@@ -247,13 +255,16 @@ class BaseScraper(ABC):
         )
         logger.debug(f"Typing into selector '{str(selector)}'.")
         try:
-            element = page.locator(selector) if isinstance(selector, str) else selector
+            element = page.locator(selector) if isinstance(
+                selector, str) else selector
             element.first.wait_for(state="visible", timeout=timeout)
             element.first.type(text, delay=delay, timeout=timeout)
             self._human_delay()
         except PlaywrightTimeoutError as e:
-            logger.error(f"Timeout typing into selector '{str(selector)}': {e}")
-            raise DataExtractionError(f"Timeout typing into selector '{str(selector)}'")
+            logger.error(
+                f"Timeout typing into selector '{str(selector)}': {e}")
+            raise DataExtractionError(
+                f"Timeout typing into selector '{str(selector)}'")
         except Exception as e:
             logger.error(
                 f"Error typing into selector '{str(selector)}': {e}",
@@ -266,7 +277,8 @@ class BaseScraper(ABC):
     def _wait_for_selector(
         self,
         selector: Union[str, Locator],
-        state: Literal["attached", "detached", "hidden", "visible"] = "visible",
+        state: Literal["attached", "detached",
+                       "hidden", "visible"] = "visible",
         timeout_override: Optional[int] = None,
     ) -> Locator:
         """Waits for a selector to be in a specific state."""
@@ -278,12 +290,15 @@ class BaseScraper(ABC):
             f"Waiting for selector '{str(selector)}' (state: {state}) with timeout {timeout}ms."
         )
         try:
-            element = page.locator(selector) if isinstance(selector, str) else selector
+            element = page.locator(selector) if isinstance(
+                selector, str) else selector
             element.first.wait_for(state=state, timeout=timeout)
             return element
         except PlaywrightTimeoutError as e:
-            logger.error(f"Timeout waiting for selector '{str(selector)}': {e}")
-            raise DataExtractionError(f"Timeout waiting for selector '{str(selector)}'")
+            logger.error(
+                f"Timeout waiting for selector '{str(selector)}': {e}")
+            raise DataExtractionError(
+                f"Timeout waiting for selector '{str(selector)}'")
         except Exception as e:
             logger.error(
                 f"Error waiting for selector '{str(selector)}': {e}",
@@ -303,7 +318,8 @@ class BaseScraper(ABC):
         debug_path = os.path.join(self.debug_dir, bank_id)
         os.makedirs(debug_path, exist_ok=True)
 
-        screenshot_path = os.path.join(debug_path, f"{timestamp}_{step_name}.png")
+        screenshot_path = os.path.join(
+            debug_path, f"{timestamp}_{step_name}.png")
         html_path = os.path.join(debug_path, f"{timestamp}_{step_name}.html")
 
         try:
@@ -319,7 +335,7 @@ class BaseScraper(ABC):
         except Exception as e:
             logger.warning(f"Could not save HTML for {step_name}: {e}")
 
-    def scrape(self, user: str, password: str) -> List[MovementModel]:
+    def scrape(self, user: str, password: str) -> List:
         """
         Executes the entire scraping process: starts the browser,
         logs in, and extracts the data.
@@ -354,13 +370,25 @@ class BaseScraper(ABC):
                 self._login()
                 logger.info(f"Successfully logged into {self._get_bank_id()}.")
 
-                logger.info(f"Extracting movements from {self._get_bank_id()}...")
+                logger.info(
+                    f"Extracting movements from {self._get_bank_id()}...")
                 movements = self._scrape_movements()
                 logger.info(
                     f"Extraction of {len(movements)} movements completed for {self._get_bank_id()}."
                 )
+                try:
+                    logger.info(
+                        f"Extracting stocks from {self._get_bank_id()}...")
+                    portfolio = self._scrape_portfolio()
+                    logger.info(
+                        f"Extraction of portfolio completed for {self._get_bank_id()}."
+                    )
+                except (NotImplementedError) as e:
+                    portfolio = []
+                    logger.warning(
+                        f"Portfolio scraping method not implemented in {self._get_bank_id()}. Continuing...")
 
-                return movements
+                return movements + [portfolio]
 
             except (LoginError, DataExtractionError):
                 if self.page:
