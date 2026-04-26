@@ -253,31 +253,35 @@ class BiceScraper(BaseScraper):
 
             movements_on_page: List[MovementModel] = []
 
-            amount_cell_selector = "tbody.table-body .transaction-table__amount"
+            row_selector = "tbody.table-body tr"
 
             try:
                 self._wait_for_selector(
-                    f"{amount_cell_selector} >> nth=0", timeout_override=10000
+                    f"{row_selector} >> nth=0", timeout_override=10000
                 )
             except (PlaywrightTimeoutError, DataExtractionError):
                 logger.info("No movement rows found on this page.")
                 return []
 
-            amount_cells = page.locator(amount_cell_selector).all()
-            logger.debug(f"Found {len(amount_cells)} rows on this page.")
+            rows = page.locator(row_selector).all()
+            logger.debug(f"Found {len(rows)} rows on this page.")
 
-            for i, amount_cell in enumerate(amount_cells):
+            for i, row in enumerate(rows):
                 try:
-                    row = amount_cell.locator("xpath=../..")
-
-                    date_selector = "td:nth-child(1)"
-                    type_selector = "td:nth-child(2)"
-                    description_selector = "td:nth-child(3)"
-
-                    date_str = row.locator(date_selector).inner_text().strip()
-                    type_str = row.locator(type_selector).inner_text().strip()
-                    description = row.locator(description_selector).inner_text().strip()
-                    amount_str = amount_cell.inner_text().strip()
+                    date_str = (
+                        row.locator("td:nth-child(1)").inner_text(timeout=5000).strip()
+                    )
+                    type_str = (
+                        row.locator("td:nth-child(2)").inner_text(timeout=5000).strip()
+                    )
+                    description = (
+                        row.locator("td:nth-child(3)").inner_text(timeout=5000).strip()
+                    )
+                    amount_str = (
+                        row.locator(".transaction-table__amount >> nth=0")
+                        .inner_text(timeout=5000)
+                        .strip()
+                    )
 
                     parsed_date = self._parse_bice_date(date_str)
 
@@ -354,14 +358,14 @@ class BiceScraper(BaseScraper):
             logger.info(f"Clicking 'Siguiente' to go to page {page_num + 1}...")
 
             first_row_description_selector = (
-                "tbody.table-body tr:first-child td:third-child"
+                "tbody.table-body tr:first-child td:nth-child(3)"
             )
             old_first_description = ""
             try:
                 if page.locator(first_row_description_selector).count() > 0:
                     old_first_description = page.locator(
                         first_row_description_selector
-                    ).inner_text()
+                    ).inner_text(timeout=5000)
             except Exception:
                 pass
 
@@ -394,7 +398,7 @@ class BiceScraper(BaseScraper):
             element = self._wait_for_selector(
                 account_id_selector, timeout_override=15000
             )
-            account_id = element.inner_text().strip()
+            account_id = element.inner_text(timeout=5000).strip()
             logger.info(f"Found credit card ID: {account_id}")
         except Exception as e:
             logger.warning(
@@ -439,7 +443,7 @@ class BiceScraper(BaseScraper):
 
         for i, row in enumerate(rows):
             try:
-                date_str = row.locator(".date").inner_text().strip()
+                date_str = row.locator(".date").inner_text(timeout=5000).strip()
                 parsed_date = self._parse_bice_date(date_str)
                 if not parsed_date:
                     logger.warning(
@@ -447,7 +451,9 @@ class BiceScraper(BaseScraper):
                     )
                     continue
 
-                amount_str = row.locator(".transaction-amount").inner_text().strip()
+                amount_str = (
+                    row.locator(".transaction-amount").inner_text(timeout=5000).strip()
+                )
                 parsed_amount = parse_chilean_amount(
                     self._parse_bice_amount(amount_str)
                 )
@@ -457,21 +463,31 @@ class BiceScraper(BaseScraper):
                 if "cargos" in row_class:
                     transaction_type = "Cargo"
                     parsed_amount = -abs(parsed_amount)
-                    category_name = row.locator(".category-name").inner_text().strip()
+                    category_name = (
+                        row.locator(".category-name").inner_text(timeout=5000).strip()
+                    )
                     category_desc = (
-                        row.locator(".category-description").inner_text().strip()
+                        row.locator(".category-description")
+                        .inner_text(timeout=5000)
+                        .strip()
                     )
                     transaction_detail = (
-                        row.locator(".transaction-detail").inner_text().strip()
+                        row.locator(".transaction-detail")
+                        .inner_text(timeout=5000)
+                        .strip()
                     )
                     description = (
                         f"{transaction_detail} ({category_name}, {category_desc})"
                     )
                 else:
                     transaction_type = "Abono"
-                    category_name = row.locator(".category-name").inner_text().strip()
+                    category_name = (
+                        row.locator(".category-name").inner_text(timeout=5000).strip()
+                    )
                     transaction_detail = (
-                        row.locator(".transaction-detail").inner_text().strip()
+                        row.locator(".transaction-detail")
+                        .inner_text(timeout=5000)
+                        .strip()
                     )
                     description = f"{transaction_detail} ({category_name})"
 
@@ -532,7 +548,9 @@ class BiceScraper(BaseScraper):
             period_label = f"Período {i + 1}"
             try:
                 period_label = (
-                    acc.locator(".period-accordion-header strong").inner_text().strip()
+                    acc.locator(".period-accordion-header strong")
+                    .inner_text(timeout=5000)
+                    .strip()
                 )
             except Exception:
                 pass
@@ -560,7 +578,7 @@ class BiceScraper(BaseScraper):
 
             for j, row in enumerate(rows):
                 try:
-                    date_str = row.locator(".date").inner_text().strip()
+                    date_str = row.locator(".date").inner_text(timeout=5000).strip()
                     parsed_date = self._parse_bice_date(date_str)
                     if not parsed_date:
                         logger.warning(
@@ -568,7 +586,11 @@ class BiceScraper(BaseScraper):
                         )
                         continue
 
-                    amount_str = row.locator(".transaction-amount").inner_text().strip()
+                    amount_str = (
+                        row.locator(".transaction-amount")
+                        .inner_text(timeout=5000)
+                        .strip()
+                    )
                     parsed_amount = parse_chilean_amount(
                         self._parse_bice_amount(amount_str)
                     )
@@ -579,7 +601,7 @@ class BiceScraper(BaseScraper):
                     try:
                         installments_str = (
                             row.locator(".transaction-installments")
-                            .inner_text()
+                            .inner_text(timeout=5000)
                             .strip()
                         )
                     except Exception:
@@ -589,13 +611,19 @@ class BiceScraper(BaseScraper):
                         transaction_type = "Cargo"
                         parsed_amount = -abs(parsed_amount)
                         category_name = (
-                            row.locator(".category-name").inner_text().strip()
+                            row.locator(".category-name")
+                            .inner_text(timeout=5000)
+                            .strip()
                         )
                         category_desc = (
-                            row.locator(".category-description").inner_text().strip()
+                            row.locator(".category-description")
+                            .inner_text(timeout=5000)
+                            .strip()
                         )
                         transaction_detail = (
-                            row.locator(".transaction-detail").inner_text().strip()
+                            row.locator(".transaction-detail")
+                            .inner_text(timeout=5000)
+                            .strip()
                         )
                         description = (
                             f"{transaction_detail} ({category_name}, {category_desc})"
@@ -604,10 +632,14 @@ class BiceScraper(BaseScraper):
                         transaction_type = "Abono"
                         parsed_amount = abs(parsed_amount)
                         category_name = (
-                            row.locator(".category-name").inner_text().strip()
+                            row.locator(".category-name")
+                            .inner_text(timeout=5000)
+                            .strip()
                         )
                         transaction_detail = (
-                            row.locator(".transaction-detail").inner_text().strip()
+                            row.locator(".transaction-detail")
+                            .inner_text(timeout=5000)
+                            .strip()
                         )
                         description = f"{transaction_detail} ({category_name})"
 
@@ -671,7 +703,7 @@ class BiceScraper(BaseScraper):
 
         for i, row in enumerate(rows):
             try:
-                date_str = row.locator(".date").inner_text().strip()
+                date_str = row.locator(".date").inner_text(timeout=5000).strip()
                 parsed_date = self._parse_bice_date(date_str)
                 if not parsed_date:
                     logger.warning(
@@ -679,7 +711,9 @@ class BiceScraper(BaseScraper):
                     )
                     continue
 
-                amount_str = row.locator(".transaction-amount").inner_text().strip()
+                amount_str = (
+                    row.locator(".transaction-amount").inner_text(timeout=5000).strip()
+                )
                 parsed_amount = parse_chilean_amount(
                     self._parse_intl_amount(amount_str)
                 )
@@ -689,12 +723,18 @@ class BiceScraper(BaseScraper):
                 if "cargos" in row_class:
                     transaction_type = "Cargo"
                     parsed_amount = -abs(parsed_amount)
-                    category_name = row.locator(".category-name").inner_text().strip()
+                    category_name = (
+                        row.locator(".category-name").inner_text(timeout=5000).strip()
+                    )
                     category_desc = (
-                        row.locator(".category-description").inner_text().strip()
+                        row.locator(".category-description")
+                        .inner_text(timeout=5000)
+                        .strip()
                     )
                     transaction_detail = (
-                        row.locator(".transaction-detail").inner_text().strip()
+                        row.locator(".transaction-detail")
+                        .inner_text(timeout=5000)
+                        .strip()
                     )
                     description = (
                         f"{transaction_detail} ({category_name}, {category_desc})"
@@ -702,9 +742,13 @@ class BiceScraper(BaseScraper):
                 else:
                     transaction_type = "Abono"
                     parsed_amount = abs(parsed_amount)
-                    category_name = row.locator(".category-name").inner_text().strip()
+                    category_name = (
+                        row.locator(".category-name").inner_text(timeout=5000).strip()
+                    )
                     transaction_detail = (
-                        row.locator(".transaction-detail").inner_text().strip()
+                        row.locator(".transaction-detail")
+                        .inner_text(timeout=5000)
+                        .strip()
                     )
                     description = f"{transaction_detail} ({category_name})"
 
@@ -765,7 +809,9 @@ class BiceScraper(BaseScraper):
             period_label = f"Período {i + 1}"
             try:
                 period_label = (
-                    acc.locator(".period-accordion-header strong").inner_text().strip()
+                    acc.locator(".period-accordion-header strong")
+                    .inner_text(timeout=5000)
+                    .strip()
                 )
             except Exception:
                 pass
@@ -795,7 +841,7 @@ class BiceScraper(BaseScraper):
 
             for j, row in enumerate(rows):
                 try:
-                    date_str = row.locator(".date").inner_text().strip()
+                    date_str = row.locator(".date").inner_text(timeout=5000).strip()
                     parsed_date = self._parse_bice_date(date_str)
                     if not parsed_date:
                         logger.warning(
@@ -803,7 +849,11 @@ class BiceScraper(BaseScraper):
                         )
                         continue
 
-                    amount_str = row.locator(".transaction-amount").inner_text().strip()
+                    amount_str = (
+                        row.locator(".transaction-amount")
+                        .inner_text(timeout=5000)
+                        .strip()
+                    )
                     parsed_amount = parse_chilean_amount(
                         self._parse_intl_amount(amount_str)
                     )
@@ -814,13 +864,19 @@ class BiceScraper(BaseScraper):
                         transaction_type = "Cargo"
                         parsed_amount = -abs(parsed_amount)
                         category_name = (
-                            row.locator(".category-name").inner_text().strip()
+                            row.locator(".category-name")
+                            .inner_text(timeout=5000)
+                            .strip()
                         )
                         category_desc = (
-                            row.locator(".category-description").inner_text().strip()
+                            row.locator(".category-description")
+                            .inner_text(timeout=5000)
+                            .strip()
                         )
                         transaction_detail = (
-                            row.locator(".transaction-detail").inner_text().strip()
+                            row.locator(".transaction-detail")
+                            .inner_text(timeout=5000)
+                            .strip()
                         )
                         description = (
                             f"{transaction_detail} ({category_name}, {category_desc})"
@@ -829,10 +885,14 @@ class BiceScraper(BaseScraper):
                         transaction_type = "Abono"
                         parsed_amount = abs(parsed_amount)
                         category_name = (
-                            row.locator(".category-name").inner_text().strip()
+                            row.locator(".category-name")
+                            .inner_text(timeout=5000)
+                            .strip()
                         )
                         transaction_detail = (
-                            row.locator(".transaction-detail").inner_text().strip()
+                            row.locator(".transaction-detail")
+                            .inner_text(timeout=5000)
+                            .strip()
                         )
                         description = f"{transaction_detail} ({category_name})"
 
